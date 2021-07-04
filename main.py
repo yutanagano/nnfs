@@ -13,22 +13,19 @@ if __name__=="__main__":
 
     # Create the necessary layers
     dense1 = nnn.layer.Dense(n_inputs=2,n_neurons=3)
-    activation1 = nnn.activation.Relu()
+    relu = nnn.activation.Relu()
     dense2 = nnn.layer.Dense(n_inputs=3,n_neurons=3)
-    activation2 = nnn.activation.Softmax()
-    cce = nnn.loss.CategoricalCrossEntropy()
+    activation_loss = nnn.loss.SoftmaxWithCategoricalCrossentropy()
 
     # Forward pass
     output = dense1.forward(X)
-    output = activation1.forward(output)
+    output = relu.forward(output)
     output = dense2.forward(output)
-    output = activation2.forward(output)
-
-    # Print result
-    print(output[:5])
 
     # Calculate the network's current loss
-    loss = cce.calculate(output, y)
+    loss = activation_loss.forward(output, y)
+
+    print(activation_loss.outputs[:5])
 
     # Print loss value
     print("Loss: ", loss)
@@ -40,3 +37,15 @@ if __name__=="__main__":
 
     # Print accuracy
     print("Accuracy: ", accuracy)
+
+    # Backward pass
+    activation_loss.backward(activation_loss.outputs, y)
+    dense2.backward(activation_loss.dinputs)
+    relu.backward(dense2.dinputs)
+    dense1.backward(relu.dinputs)
+
+    # Print the gradients
+    print(dense1.dweights)
+    print(dense1.dbiases)
+    print(dense2.dweights)
+    print(dense2.dbiases)

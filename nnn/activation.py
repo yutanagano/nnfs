@@ -5,8 +5,20 @@ import numpy as np
 class Relu:
 
     def forward(self, inputs : np.array):
-        # Return the inputs with negative numbers corrected to 0
-        return np.maximum(0, inputs)
+        # Output is the inputs with negative numbers corrected to 0
+        self.inputs = inputs
+        self.outputs = np.maximum(0, inputs)
+
+        # Return calculated output
+        return self.outputs
+
+    # Backpropagation
+    def backward(self, dvalues : np.array):
+        # Copy the dvalues
+        self.dinputs = dvalues.copy()
+
+        # Zero the gradient where input values were negative
+        self.dinputs[self.inputs <= 0] = 0
 
 
 # Softwmax activation function
@@ -14,7 +26,23 @@ class Softmax:
 
     def forward(self, inputs : np.array):
         # Exponentiate the input tensor element-wise
-        output = np.exp(inputs - np.max(inputs, axis=1, keepdims=True))
+        self.outputs = np.exp(inputs - np.max(inputs, axis=1, keepdims=True))
 
         # Return the normalised output (sample-wise normalisation)
-        return output / np.sum(output, axis=1, keepdims=True)
+        return self.outputs / np.sum(self.outputs, axis=1, keepdims=True)
+
+    # Backpropagation
+    def backward(self, dvalues : np.array):
+
+        # Create an empty array in the shape of dvalues
+        self.dinputs = np.empty_like(dvalues)
+
+        # Enumerate outputs and gradients
+        for i, (output, dvalue) in enumerate(zip(self.outputs, dvalues)):
+            # Flatten output array
+            output = output.reshape(-1,1)
+            # Calculate Jacobian matrix of output
+            j_matrix = np.diagflat(output) - np.dot(output, output.T)
+            # Calculate a sample-wise gradient and add it to the array of sample gradients
+            self.dinputs[i] = np.dot(j_matrix, dvalue)
+
