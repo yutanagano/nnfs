@@ -1,5 +1,5 @@
-from nnn.activation import Softmax
 import numpy as np
+from nnn.activation import Softmax
 
 
 # Base class for loss functions
