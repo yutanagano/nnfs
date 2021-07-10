@@ -1,4 +1,4 @@
-#NNFS
+# NNFS
 
 This is a git repository for a python/numpy neural network implementation.
 
