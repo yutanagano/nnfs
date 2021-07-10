@@ -18,7 +18,7 @@ if __name__=="__main__":
     activation_loss = nnn.loss.SoftmaxWithCategoricalCrossentropy()
 
     # Create the optimiser
-    optimiser = nnn.optimiser.SGD(decay=0.001)
+    optimiser = nnn.optimiser.Adam(learning_rate=0.01, decay=0.00001)
 
     # Training loop
     for epoch in range(10001):
