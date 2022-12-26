@@ -18,6 +18,22 @@ class Loss:
         return loss
 
 
+    def regularsiation_loss(self, layer):
+        rl = 0
+
+        if layer.l1w > 0:
+            rl += layer.l1w * np.sum(np.abs(layer.weights))
+        if layer.l1b > 0:
+            rl += layer.l1b * np.sum(np.abs(layer.biases))
+        
+        if layer.l2w > 0:
+            rl += layer.l2w * np.sum(layer.weights ** 2)
+        if layer.l2b > 0:
+            rl += layer.l2b * np.sum(layer.biases ** 2)
+        
+        return rl
+
+
 # Categorial cross-entropy loss
 class CategoricalCrossEntropy(Loss):
 
@@ -66,7 +82,7 @@ class CategoricalCrossEntropy(Loss):
 
 
 # Softmax activation combined with categorical cross-entropy
-class SoftmaxWithCategoricalCrossentropy:
+class SoftmaxWithCategoricalCrossentropy(Loss):
 
     # Constructor
     def __init__(self):
