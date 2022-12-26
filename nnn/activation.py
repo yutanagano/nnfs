@@ -59,12 +59,14 @@ class Sigmoid:
 
 
 # Linear activation
-class Activation_Linear:
+class Linear:
     # Forward pass
     def forward(self, inputs):
         # Just remember values
         self.inputs = inputs
         self.output = inputs
+
+        return inputs
     # Backward pass
     def backward(self, dvalues):
         # derivative is 1, 1 * dvalues = dvalues - the chain rule
