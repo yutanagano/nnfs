@@ -46,3 +46,26 @@ class Softmax:
             # Calculate a sample-wise gradient and add it to the array of sample gradients
             self.dinputs[i] = np.dot(j_matrix, dvalue)
 
+
+# Sigmoid activation
+class Sigmoid:
+    def forward(self, inputs):
+        self.inputs = inputs
+        self.outputs = 1 / (1 + np.exp(-inputs))
+        return self.outputs
+
+    def backward(self, dvalues):
+        self.dinputs = dvalues * (1 - self.outputs) * self.outputs
+
+
+# Linear activation
+class Activation_Linear:
+    # Forward pass
+    def forward(self, inputs):
+        # Just remember values
+        self.inputs = inputs
+        self.output = inputs
+    # Backward pass
+    def backward(self, dvalues):
+        # derivative is 1, 1 * dvalues = dvalues - the chain rule
+        self.dinputs = dvalues.copy()
