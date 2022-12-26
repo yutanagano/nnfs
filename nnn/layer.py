@@ -44,3 +44,19 @@ class Dense:
 
         # Gradient on values to be passed back
         self.dinputs = np.dot(dvalues, self.weights.T)
+
+
+class Dropout:
+    def __init__(self, rate):
+        self.rate = 1 - rate
+
+
+    def forward(self, inputs):
+        self.binary_mask =\
+            np.random.binomial(1, self.rate, size=inputs.shape) / self.rate
+        self.outputs = inputs * self.binary_mask
+        return self.outputs
+
+
+    def backward(self, dvalues):
+        self.dinputs = dvalues * self.binary_mask

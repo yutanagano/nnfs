@@ -82,7 +82,7 @@ class CategoricalCrossEntropy(Loss):
 
 
 # Softmax activation combined with categorical cross-entropy
-class SoftmaxWithCategoricalCrossentropy(Loss):
+class SoftmaxWithCategoricalCrossentropy:
 
     # Constructor
     def __init__(self):
