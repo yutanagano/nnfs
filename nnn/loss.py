@@ -4,116 +4,103 @@ from nnn.activation import Softmax
 
 # Base class for loss functions
 class Loss:
+    def remember_trainable_layers(self, trainable_layers):
+        self.trainable_layers = trainable_layers
+    
 
     # Calculates loss given model output and target/ground truth
-    def calculate(self, y_pred : np.array, y_true : np.array):
-
-        # Calculate sample losses
+    def calculate(
+        self,
+        y_pred : np.array,
+        y_true : np.array,
+        *,
+        include_regularisation=False
+    ):
         sample_losses = self.forward(y_pred, y_true)
+        data_loss = np.mean(sample_losses)
 
-        # Calculate mean loss
-        loss = np.mean(sample_losses)
+        if not include_regularisation:
+            return data_loss
 
         # Return mean loss
-        return loss
+        return data_loss, self.regularsiation_loss()
 
 
-    def regularsiation_loss(self, layer):
+    def regularsiation_loss(self):
         rl = 0
 
-        if layer.l1w > 0:
-            rl += layer.l1w * np.sum(np.abs(layer.weights))
-        if layer.l1b > 0:
-            rl += layer.l1b * np.sum(np.abs(layer.biases))
-        
-        if layer.l2w > 0:
-            rl += layer.l2w * np.sum(layer.weights ** 2)
-        if layer.l2b > 0:
-            rl += layer.l2b * np.sum(layer.biases ** 2)
+        for layer in self.trainable_layers:
+            if layer.l1w > 0:
+                rl += layer.l1w * np.sum(np.abs(layer.weights))
+            if layer.l1b > 0:
+                rl += layer.l1b * np.sum(np.abs(layer.biases))
+            
+            if layer.l2w > 0:
+                rl += layer.l2w * np.sum(layer.weights ** 2)
+            if layer.l2b > 0:
+                rl += layer.l2b * np.sum(layer.biases ** 2)
         
         return rl
 
 
 # Categorial cross-entropy loss
 class CategoricalCrossEntropy(Loss):
-
     # Forward pass
-    def forward(self, y_pred : np.array, y_true : np.array):
-
-        # Get the number of samples in this batch
-        num_samples = len(y_pred)
-
-        # Clip to prevent exploding numbers
-        pred_clipped = np.clip(y_pred, 1e-7, 1-1e-7)
-
-        # If y_true is provided as target values
+    def forward(self, y_pred, y_true):
+        # Number of samples in a batch
+        samples = len(y_pred)
+        # Clip data to prevent division by 0
+        # Clip both sides to not drag mean towards any value
+        y_pred_clipped = np.clip(y_pred, 1e-7, 1 - 1e-7)
+        # Probabilities for target values -
+        # only if categorical labels
         if len(y_true.shape) == 1:
-            loss = -np.log(
-                pred_clipped[
-                    range(num_samples),
-                    y_true
-                ]
-            )
-        # If y_true is provided as distributions
-        else:
-            loss = -np.sum(
-                np.log(pred_clipped) * y_true,
+            correct_confidences = y_pred_clipped[
+                range(samples),
+                y_true
+            ]
+        # Mask values - only for one-hot encoded labels
+        elif len(y_true.shape) == 2:
+            correct_confidences = np.sum(
+                y_pred_clipped * y_true,
                 axis=1
             )
-        
-        # Return the calculated loss
-        return loss
-
-    # Backpropagation
-    def backward(self, y_pred : np.array, y_true : np.array):
+        # Losses
+        negative_log_likelihoods = -np.log(correct_confidences)
+        return negative_log_likelihoods
+    
+    
+    # Backward pass
+    def backward(self, dvalues, y_true):
         # Number of samples
-        samples = len(y_pred)
+        samples = len(dvalues)
         # Number of labels in every sample
-        labels = len(y_pred[0])
-
-        # If labels are sparse, convert to one-hot vector form
+        # We'll use the first sample to count them
+        labels = len(dvalues[0])
+        # If labels are sparse, turn them into one-hot vector
         if len(y_true.shape) == 1:
             y_true = np.eye(labels)[y_true]
-
         # Calculate gradient
-        self.dinputs = -y_true / y_pred
-        # Normalise gradient
+        self.dinputs = -y_true / dvalues
+        # Normalize gradient
         self.dinputs = self.dinputs / samples
 
 
 # Softmax activation combined with categorical cross-entropy
-class SoftmaxWithCategoricalCrossentropy:
-
-    # Constructor
-    def __init__(self):
-        # Creates activation and loss function objects
-        self.softmax = Softmax()
-        self.categoricalcrossentropy = CategoricalCrossEntropy()
-
-    # Forward pass
-    def forward(self, inputs : np.array, y_true : np.array):
-        # Pass inputs through activation and set self.outputs variable
-        self.outputs = self.softmax.forward(inputs)
-        # Return the loss value
-        return self.categoricalcrossentropy.calculate(self.outputs, y_true)
-
-    # Backpropagation
-    def backward(self, y_pred : np.array, y_true : np.array):
-        
+class SoftmaxWithCategoricalCrossEntropy:
+    # Backward pass
+    def backward(self, dvalues, y_true):
         # Number of samples
-        samples = len(y_pred)
-
-        # If labels are one-hot encoded, convert to spare form
+        samples = len(dvalues)
+        # If labels are one-hot encoded,
+        # turn them into discrete values
         if len(y_true.shape) == 2:
             y_true = np.argmax(y_true, axis=1)
-
-        # Copy the y_pred so we can modify
-        self.dinputs = y_pred.copy()
-
+        # Copy so we can safely modify
+        self.dinputs = dvalues.copy()
         # Calculate gradient
         self.dinputs[range(samples), y_true] -= 1
-
-        # Normalise gradient
+        # Normalize gradient
         self.dinputs = self.dinputs / samples
 
 

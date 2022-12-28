@@ -1,1 +1,1 @@
-from . import activation, layer, loss, optimiser
+from . import accuracy, activation, layer, loss, module, optimiser

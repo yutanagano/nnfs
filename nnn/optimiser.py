@@ -175,7 +175,7 @@ class Adam:
         # Update momentums with current gradients
         layer.weight_momentums = self.beta_1 * \
                                  layer.weight_momentums + \
-                                 (1 + self.beta_1) * layer.dweights
+                                 (1 - self.beta_1) * layer.dweights
         layer.bias_momentums = self.beta_1 * \
                                layer.bias_momentums + \
                                (1 - self.beta_1) * layer.dbiases
