@@ -1,4 +1,4 @@
 __pycache__
 .vscode
 /.venv
-/fashion_mnist_images*
+/fashion_mnist*

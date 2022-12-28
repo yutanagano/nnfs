@@ -1,6 +1,8 @@
 from .activation import Softmax
 from .layer import Input
 from .loss import CategoricalCrossEntropy, SoftmaxWithCategoricalCrossEntropy
+import copy
+import pickle
 
 
 class Module:
@@ -13,10 +15,15 @@ class Module:
         self.layers.append(layer)
 
 
-    def set(self, *, loss, optimiser, accuracy):
-        self.loss = loss
-        self.optimiser = optimiser
-        self.accuracy = accuracy
+    def set(self, *, loss=None, optimiser=None, accuracy=None):
+        if loss is not None:
+            self.loss = loss
+        
+        if optimiser is not None:
+            self.optimiser = optimiser
+
+        if accuracy is not None:
+            self.accuracy = accuracy
 
 
     def finalise(self):
@@ -44,7 +51,8 @@ class Module:
             if hasattr(self.layers[i], 'weights'):
                 self.trainable_layers.append(self.layers[i])
 
-        self.loss.remember_trainable_layers(self.trainable_layers)
+        if self.loss is not None:
+            self.loss.remember_trainable_layers(self.trainable_layers)
 
         if isinstance(self.layers[-1], Softmax) and\
             isinstance(self.loss, CategoricalCrossEntropy):
@@ -236,3 +244,59 @@ class Module:
         print(f'validation, ' +
         f'acc: {validation_accuracy:.3f}, ' +
         f'loss: {validation_loss:.3f}')
+
+
+    def get_parameters(self):
+        parameters = []
+
+        for layer in self.trainable_layers:
+            parameters.append(layer.get_parameters())
+
+        return parameters
+
+
+    def set_parameters(self, parameters):
+        for parameter_set, layer in zip(parameters, self.trainable_layers):
+            layer.set_parameters(*parameter_set)
+
+
+    def save_parameters(self, path):
+        with open(path, 'wb') as f:
+            pickle.dump(self.get_parameters(), f)
+
+
+    def load_parameters(self, path):
+        with open(path, 'rb') as f:
+            self.set_parameters(pickle.load(f))
+
+
+    def save(self, path):
+        # Make a deep copy of current model instance
+        model = copy.deepcopy(self)
+
+        # Reset accumulated values in loss and accuracy objects
+        model.loss.new_pass()
+        model.accuracy.new_pass()
+
+        # Remove data from the input layer
+        # and gradients from the loss object
+        model.input_layer.__dict__.pop('outputs', None)
+        model.loss.__dict__.pop('dinputs', None)
+
+        # For each layer remove inputs, output and dinputs properties
+        for layer in model.layers:
+            for property in ['inputs', 'outputs', 'dinputs',
+            'dweights', 'dbiases']:
+                layer.__dict__.pop(property, None)
+
+        # Open a file in the binary-write mode and save the model
+        with open(path, 'wb') as f:
+            pickle.dump(model, f)
+
+
+    @staticmethod
+    def load(path):
+        with open(path, 'rb') as f:
+            model = pickle.load(f)
+
+        return model
