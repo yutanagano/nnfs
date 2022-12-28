@@ -2,6 +2,7 @@ from .activation import Softmax
 from .layer import Input
 from .loss import CategoricalCrossEntropy, SoftmaxWithCategoricalCrossEntropy
 import copy
+import numpy as np
 import pickle
 
 
@@ -244,6 +245,42 @@ class Module:
         print(f'validation, ' +
         f'acc: {validation_accuracy:.3f}, ' +
         f'loss: {validation_loss:.3f}')
+
+
+    def predict(self, X, *, batch_size=None):
+        # Default value if batch size is not being set
+        prediction_steps = 1
+        # Calculate number of steps
+        if batch_size is not None:
+            prediction_steps = len(X) // batch_size
+            # Dividing rounds down. If there are some remaining
+            # data, but not a full batch, this won't include it
+            # Add `1` to include this not full batch
+            if prediction_steps * batch_size < len(X):
+                prediction_steps += 1
+
+        # Model outputs
+        output = []
+
+        # Iterate over steps
+        for step in range(prediction_steps):
+            # If batch size is not set -
+            # train using one step and full dataset
+            if batch_size is None:
+                batch_X = X
+
+            # Otherwise slice a batch
+            else:
+                batch_X = X[step*batch_size:(step+1)*batch_size]
+
+            # Perform the forward pass
+            batch_output = self.forward(batch_X, training=False)
+
+            # Append batch prediction to the list of predictions
+            output.append(batch_output)
+
+        # Stack and return results
+        return np.vstack(output)
 
 
     def get_parameters(self):
